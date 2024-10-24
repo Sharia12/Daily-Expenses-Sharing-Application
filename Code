@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Expenses Sharing Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            padding: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #000;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #444;
+        }
+        .user-list, .expense-list {
+            margin-top: 20px;
+        }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .edit-delete {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Daily Expenses Sharing Application</h1>
+        
+        <!-- User Management Section -->
+        <div class="card">
+            <h2>Manage Users</h2>
+            <label for="userName">Name</label>
+            <input type="text" id="userName" placeholder="Enter user's name">
+
+            <label for="userEmail">Email</label>
+            <input type="email" id="userEmail" placeholder="Enter user's email">
+
+            <label for="userPhone">Phone Number</label>
+            <input type="text" id="userPhone" placeholder="Enter user's phone number">
+
+            <button id="addUserBtn">Add User</button>
+            <h3>Users List</h3>
+            <div class="user-list" id="userList"></div>
+        </div>
+
+        <!-- Expense Management Section -->
+        <div class="card">
+            <h2>Add Expense</h2>
+            <label for="expenseName">Expense Name</label>
+            <input type="text" id="expenseName" placeholder="Enter expense name">
+
+            <label for="expenseAmount">Amount</label>
+            <input type="number" id="expenseAmount" placeholder="Enter amount">
+
+            <label for="expensePaidBy">Paid By</label>
+            <select id="expensePaidBy" multiple>
+                <option value="" disabled>Select users</option>
+            </select>
+
+            <label for="splitMethod">Split Method</label>
+            <select id="splitMethod">
+                <option value="equal">Equal Split</option>
+                <option value="exact">Exact Amounts</option>
+                <option value="percentage">Percentages</option>
+            </select>
+
+            <button id="addExpenseBtn">Add Expense</button>
+            <h3>Expenses List</h3>
+            <div class="expense-list" id="expenseList"></div>
+        </div>
+
+        <!-- Download Balance Sheet -->
+        <div class="card">
+            <button id="downloadBtn">Download Balance Sheet</button>
+        </div>
+    </div>
+
+    <script>
+        const users = [];
+        const expenses = [];
+
+        document.getElementById('addUserBtn').addEventListener('click', () => {
+            const name = document.getElementById('userName').value;
+            const email = document.getElementById('userEmail').value;
+            const phone = document.getElementById('userPhone').value;
+
+            if (name && email && phone) {
+                const user = { id: Date.now(), name, email, phone };
+                users.push(user);
+                updateUserList();
+                updatePaidByDropdown();
+                clearUserInputs();
+            } else {
+                alert('Please fill out all user fields.');
+            }
+        });
+
+        document.getElementById('addExpenseBtn').addEventListener('click', () => {
+            const expenseName = document.getElementById('expenseName').value;
+            const expenseAmount = document.getElementById('expenseAmount').value;
+            const paidBy = Array.from(document.getElementById('expensePaidBy').selectedOptions).map(option => option.value);
+            const splitMethod = document.getElementById('splitMethod').value;
+
+            if (expenseName && expenseAmount && paidBy.length > 0) {
+                const expense = { id: Date.now(), expenseName, expenseAmount, paidBy, splitMethod };
+                expenses.push(expense);
+                updateExpenseList();
+                clearExpenseInputs();
+            } else {
+                alert('Please fill out all expense fields.');
+            }
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const balanceSheet = expenses.map(expense => {
+                return `Expense: ${expense.expenseName}, Amount: ${expense.expenseAmount}, Paid By: ${expense.paidBy.join(', ')}, Split Method: ${expense.splitMethod}`;
+            }).join('\n');
+
+            const blob = new Blob([balanceSheet], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'balance_sheet.txt';
+            link.click();
+        });
+
+        function updateUserList() {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+            users.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.classList.add('list-item');
+                userItem.innerHTML = `
+                    <span>${user.name} (${user.email}, ${user.phone})</span>
+                    <div class="edit-delete">
+                        <button onclick="editUser(${user.id})">Edit</button>
+                        <button onclick="deleteUser(${user.id})">Delete</button>
+                    </div>
+                `;
+                userList.appendChild(userItem);
+            });
+        }
+
+        function updatePaidByDropdown() {
+            const paidByDropdown = document.getElementById('expensePaidBy');
+            paidByDropdown.innerHTML = '';
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.name;
+                option.textContent = user.name;
+                paidByDropdown.appendChild(option);
+            });
+        }
+
+        function updateExpenseList() {
+            const expenseList = document.getElementById('expenseList');
+            expenseList.innerHTML = '';
+            expenses.forEach(expense => {
+                const expenseItem = document.createElement('div');
+                expenseItem.classList.add('list-item');
+                expenseItem.innerHTML = `
+                    <span>${expense.expenseName} - ${expense.expenseAmount} (Paid by: ${expense.paidBy.join(', ')}, Split: ${expense.splitMethod})</span>
+                    <div class="edit-delete">
+                        <button onclick="editExpense(${expense.id})">Edit</button>
+                        <button onclick="deleteExpense(${expense.id})">Delete</button>
+                    </div>
+                `;
+                expenseList.appendChild(expenseItem);
+            });
+        }
+
+        function editUser(userId) {
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                document.getElementById('userName').value = user.name;
+                document.getElementById('userEmail').value = user.email;
+                document.getElementById('userPhone').value = user.phone;
+                
+                deleteUser(userId); // Remove the user after populating fields for editing
+            }
+        }
+
+        function deleteUser(userId) {
+            const index = users.findIndex(user => user.id === userId);
+            if (index !== -1) {
+                users.splice(index, 1);
+                updateUserList();
+                updatePaidByDropdown();
+            }
+        }
+
+        function editExpense(expenseId) {
+            const expense = expenses.find(e => e.id === expenseId);
+            if (expense) {
+                document.getElementById('expenseName').value = expense.expenseName;
+                document.getElementById('expenseAmount').value = expense.expenseAmount;
+                const paidByDropdown = document.getElementById('expensePaidBy');
+                Array.from(paidByDropdown.options).forEach(option => {
+                    option.selected = expense.paidBy.includes(option.value);
+                });
+                document.getElementById('splitMethod').value = expense.splitMethod;
+
+                deleteExpense(expenseId); // Remove the expense after populating fields for editing
+            }
+</script>
+</body>
+</html>
